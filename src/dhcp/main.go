@@ -29,20 +29,20 @@ type lease struct {
 }
 
 func main() {
+	serverIP := net.IP{192, 169, 0, 1}
 	server := &DHCPServer{
-		ip:            net.IP{172, 30, 0, 1},
+		ip:            serverIP,
 		leaseDuration: 2 * time.Hour,
-		start:         net.IP{172, 30, 0, 2},
+		start:         net.IP{168, 169, 0, 30},
 		leaseRange:    50,
 		leases:        make(map[int]lease, 10),
+		options: dhcp.Options{
+			dhcp.OptionSubnetMask:       []byte{255, 255, 240, 0},
+			dhcp.OptionRouter:           []byte(serverIP), // Presuming Server is also your router
+			dhcp.OptionDomainNameServer: []byte(serverIP), // Presuming Server is also your DNS server
+		},
 	}
-	server.options = dhcp.Options{
-		dhcp.OptionSubnetMask:       []byte{255, 255, 240, 0},
-		dhcp.OptionRouter:           []byte(server.ip), // Presuming Server is also your router
-		dhcp.OptionDomainNameServer: []byte(server.ip), // Presuming Server is also your DNS server
-	}
-	//panic(dhcp.ListenAndServe(server).Error())
-	panic((&dhcp.Server{Handler: server, ServerIP: server.ip}).ListenAndServe().Error())
+	panic(dhcp.ListenAndServeIf("eth0", server).Error())
 }
 
 func (s *DHCPServer) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, options dhcp.Options) (d dhcp.Packet) {
